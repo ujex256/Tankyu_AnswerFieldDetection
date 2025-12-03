@@ -1,5 +1,5 @@
 {
-  "name": "Tankyu_AnswerFieldDetection",
+  "name": "tankyu_answerfielddetection",
   "private": true,
   "scripts": {
     "build": "turbo run build",

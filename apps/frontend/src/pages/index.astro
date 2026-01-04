@@ -1,11 +1,32 @@
 ---
-import Welcome from "../components/Welcome.astro";
 import Layout from "../layouts/Layout.astro";
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
 <Layout>
-  <Welcome />
+  <main class="flex-1 mx-auto w-full max-w-5xl bg-amber-200 px-6 py-12">
+    <section class="flex flex-col items-center gap-8">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-center tracking-wide">
+        回答欄検出アプリ
+      </h1>
+      <div class="w-full max-w-2xl">
+        <p class="text-lg">
+          {"これは紹介文です。回答欄検出アプリは、画像内の回答欄を自動的に検出し、抽出することができます。".repeat(4)}
+        </p>
+      </div>
+      <img
+        alt="回答欄検出のテスト画像"
+        class="w-full max-w-2xl rounded-xl border border-transparent shadow-lg"
+        src="https://placehold.jp/350x175.png"
+        loading="lazy"
+      />
+    </section>
+    <section class="flex justify-center">
+      <a
+        href="/detection"
+        class="mt-8 px-6 py-3 bg-indigo-500 text-white text-lg font-semibold rounded-md shadow-md hover:bg-indigo-600 transition-colors"
+      >
+        画像を撮影して開始する
+      </a>
+    </section>
+  </main>
 </Layout>

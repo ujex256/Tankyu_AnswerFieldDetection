@@ -1,0 +1,33 @@
+---
+import Layout from "../layouts/Layout.astro"
+import FileUploader from "../components/FileUploader"
+---
+<Layout>
+  <main class="flex-1 mx-auto w-full max-w-5xl bg-amber-200 px-8 pt-12 pb-20">
+    <section class="flex flex-col h-full bg-white double-border">
+      <h3 class="px-8 py-4 text-xl text-center font-semibold">写真をアップロード</h3>
+      <FileUploader client:load />
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .double-border {
+    border: solid 5px #ceebff;
+    border-radius: 13px; /* rounded-2xl */
+    position: relative;
+    z-index: 1;
+  }
+  .double-border::after {
+    content: "";
+    display: block;
+    width: calc(100% + 17px);
+    height: calc(100% + 17px);
+    border: solid 5px #50b8ff;
+    border-radius: 16px; /* rounded-2xl */
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    z-index: -1;
+  }
+</style>

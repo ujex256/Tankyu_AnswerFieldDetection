@@ -1,7 +1,7 @@
 import FileUploader from "./FileUploader";
 import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
-import cvModule, { CV_32F } from "@techstark/opencv-js";
+import cvModule, { CV_32F, CV_8UC1 } from "@techstark/opencv-js";
 
 // https://github.com/TechStark/opencv-js?tab=readme-ov-file#basic-usage
 async function getOpenCv(): Promise<{ cv: typeof cvModule }> {
@@ -32,6 +32,7 @@ export default function Processor() {
     []
   );
   const [isProcessing, setIsProcessing] = createSignal(false);
+  const [highlightImage, setHighlightImage] = createSignal<string | null>(null);
 
   const readFileAsDataUrl = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -63,7 +64,8 @@ export default function Processor() {
     ctx.drawImage(img, 0, 0, img.width, img.height);
 
     const orig = cv.imread(canvas);
-    const dst = orig.clone();
+    // @ts-ignore
+    const dst = orig.mat_clone();
     const rgbSrc = new cv.Mat();
     cv.cvtColor(orig, rgbSrc, cv.COLOR_RGBA2RGB);
     const hsbSrc = new cv.Mat();
@@ -76,24 +78,52 @@ export default function Processor() {
 
     try {
       cv.split(hsbSrc, hsvChannels);
-      const extractedChannel = hsvChannels.get(1);
+      const extractedChannel = hsvChannels.get(2);
+      cv.bitwise_not(extractedChannel, extractedChannel);
+      cv.threshold(extractedChannel, binarizationDst, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+      cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
 
-      cv.threshold(extractedChannel, binarizationDst, 0, 255, cv.THRESH_OTSU);
-      cv.dilate(binarizationDst, binarizationDst, cv.getStructuringElement(cv.MORPH_CROSS, new cv.Size(6, 6)));
+      // const ksize = 4
+      // // @ts-ignore
+      // const mask = binarizationDst.mat_clone();
+      // const vKernel = cv.getStructuringElement(
+      //   cv.MORPH_RECT,
+      //   new cv.Size(1, ksize) // ← 縦に長い
+      // );
+      // cv.morphologyEx(mask, mask, cv.MORPH_OPEN, vKernel);
+
+      // const hKernel = cv.getStructuringElement(
+      //   cv.MORPH_RECT,
+      //   new cv.Size(ksize, 1) // ← 横に長い
+      // );
+      // cv.morphologyEx(mask, mask, cv.MORPH_OPEN, hKernel);
+
+      // cv.bitwise_not(mask, mask);
+      // cv.bitwise_and(binarizationDst, mask, binarizationDst);
+
+      // cv.erode(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
+      // cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(5, 5, cv.CV_8U));
+
       cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
       cv.GaussianBlur(binarizationDst, binarizationDst, new cv.Size(9, 9), 0);
-
+      
       cv.findContours(binarizationDst, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
       let detectedCount = 0;
       for (let i = 0; i < contours.size(); i++) {
-        const points = new cv.Mat();
-        const matVector = new cv.MatVector();
         const contour = contours.get(i);
-        if (cv.contourArea(contour) < 50000 || cv.contourArea(contour) >= 200000) {
+        const matVector = new cv.MatVector();
+        matVector.push_back(contour);
+        
+        const points = new cv.Mat();
+        const area = cv.contourArea(contour);
+        if (area < 1000 || area > 400000) {
           continue;
         }
         cv.approxPolyDP(contour, points, 0.05 * cv.arcLength(contour, true), true);
-        matVector.push_back(points);
+        if (points.rows < 3) {
+          points.delete();
+          continue;
+        }
         cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255), -1);
         detectedCount++;
         points.delete();
@@ -155,6 +185,7 @@ export default function Processor() {
                   src={img.url}
                   alt={img.name}
                   class="w-full h-40 object-cover"
+                  onClick={() => {setHighlightImage(img.url)}}
                 />
                 <div class="px-2 py-1 text-sm break-all bg-blue-50 text-blue-800 flex items-center justify-between gap-2">
                   <span class="truncate">{img.name}</span>
@@ -170,7 +201,18 @@ export default function Processor() {
           </div>
         </div>
       )}
-
+      {highlightImage() && (
+        <div
+          class="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center p-4 z-50"
+          onClick={() => {setHighlightImage(null)}}
+        >
+          <img
+            src={highlightImage()!}
+            alt="Highlighted"
+            class="max-w-4xl max-h-dvh object-contain border-4 border-white shadow-lg"
+          />
+        </div>
+      )}
       <div
         class="absolute top-0 left-0 flex flex-col items-center justify-center gap-6 w-full h-full bg-white opacity-90"
         hidden={!isProcessing()}

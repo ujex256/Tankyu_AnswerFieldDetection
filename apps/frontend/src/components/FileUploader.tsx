@@ -51,7 +51,7 @@ export default function FileUploader(props: Props) {
                   <img
                     src={URL.createObjectURL(file)}
                     alt={file.name}
-                    class="object-cover w-full h-20"
+                    class="object-cover w-full h-36"
                   />
                   <p class="px-2 py-1 text-sm break-all bg-blue-50 text-blue-800">
                     {file.name}

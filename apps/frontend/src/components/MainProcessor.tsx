@@ -132,6 +132,15 @@ export default function Processor() {
     }
   };
 
+  const handleDownload = (img: ProcessedImage) => {
+    const link = document.createElement("a");
+    link.href = img.url;
+    link.download = `processed-${img.name}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <div class="relative mx-4 mb-4 flex-1 flex flex-col gap-6">
       <FileUploader files={files} setFiles={setFiles} onExecute={handler} />
@@ -147,9 +156,15 @@ export default function Processor() {
                   alt={img.name}
                   class="w-full h-40 object-cover"
                 />
-                <p class="px-2 py-1 text-sm break-all bg-blue-50 text-blue-800">
-                  {img.name}
-                </p>
+                <div class="px-2 py-1 text-sm break-all bg-blue-50 text-blue-800 flex items-center justify-between gap-2">
+                  <span class="truncate">{img.name}</span>
+                  <button
+                    class="cursor-pointer text-blue-700 underline text-xs hover:text-blue-900"
+                    onClick={() => handleDownload(img)}
+                  >
+                    ダウンロード
+                  </button>
+                </div>
               </div>
             ))}
           </div>

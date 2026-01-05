@@ -122,7 +122,7 @@ export default function Processor() {
 
         const points = new cv.Mat();
         const area = cv.contourArea(contour);
-        if (area < 1000 || area > 3000000) {
+        if (area < 1000 || area > 300000) {
           continue;
         }
         cv.approxPolyDP(contour, points, 0.05 * cv.arcLength(contour, true), true);

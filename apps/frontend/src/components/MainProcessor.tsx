@@ -1,7 +1,7 @@
 import FileUploader from "./FileUploader";
 import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
-import cvModule, { CV_32F, CV_8UC1 } from "@techstark/opencv-js";
+import cvModule from "@techstark/opencv-js";
 
 // https://github.com/TechStark/opencv-js?tab=readme-ov-file#basic-usage
 async function getOpenCv(): Promise<{ cv: typeof cvModule }> {
@@ -68,8 +68,9 @@ export default function Processor() {
     const dst = orig.mat_clone();
     const rgbSrc = new cv.Mat();
     cv.cvtColor(orig, rgbSrc, cv.COLOR_RGBA2RGB);
-    const hsbSrc = new cv.Mat();
-    cv.cvtColor(rgbSrc, hsbSrc, cv.COLOR_RGB2HSV);
+    cv.convertScaleAbs(rgbSrc, rgbSrc, 0.8, 0);
+    const hsvSrc = new cv.Mat();
+    cv.cvtColor(rgbSrc, hsvSrc, cv.COLOR_RGB2HSV);
     const hsvChannels = new cv.MatVector();
     const binarizationDst = new cv.Mat();
 
@@ -77,46 +78,51 @@ export default function Processor() {
     const hierarchy = new cv.Mat();
 
     try {
-      cv.split(hsbSrc, hsvChannels);
+      cv.GaussianBlur(hsvSrc, hsvSrc, new cv.Size(3, 3), 0);
+      cv.split(hsvSrc, hsvChannels);
       const extractedChannel = hsvChannels.get(2);
       cv.bitwise_not(extractedChannel, extractedChannel);
       cv.threshold(extractedChannel, binarizationDst, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
       cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
 
-      // const ksize = 4
-      // // @ts-ignore
-      // const mask = binarizationDst.mat_clone();
-      // const vKernel = cv.getStructuringElement(
-      //   cv.MORPH_RECT,
-      //   new cv.Size(1, ksize) // ← 縦に長い
-      // );
-      // cv.morphologyEx(mask, mask, cv.MORPH_OPEN, vKernel);
+      // @ts-ignore
+      const vertical = new cv.Mat();
+      const vKernel = cv.getStructuringElement(
+        cv.MORPH_RECT,
+        new cv.Size(1, 25) // ← 縦に長い
+      );
+      cv.morphologyEx(binarizationDst, vertical, cv.MORPH_OPEN, vKernel);
 
-      // const hKernel = cv.getStructuringElement(
-      //   cv.MORPH_RECT,
-      //   new cv.Size(ksize, 1) // ← 横に長い
-      // );
-      // cv.morphologyEx(mask, mask, cv.MORPH_OPEN, hKernel);
+      // @ts-ignore
+      const horizontal = new cv.Mat();
+      const hKernel = cv.getStructuringElement(
+        cv.MORPH_RECT,
+        new cv.Size(15, 1) // ← 横に長い
+      );
+      cv.morphologyEx(binarizationDst, horizontal, cv.MORPH_OPEN, hKernel);
 
-      // cv.bitwise_not(mask, mask);
+      const mask = new cv.Mat();
+      cv.bitwise_or(vertical, horizontal, mask);
       // cv.bitwise_and(binarizationDst, mask, binarizationDst);
 
+      cv.erode(mask, mask, cv.Mat.ones(2, 2, cv.CV_8U));
+      cv.dilate(mask, mask, cv.Mat.ones(5, 5, cv.CV_8U));
+      // cv.imshow(canvas, mask);
       // cv.erode(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
       // cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(5, 5, cv.CV_8U));
 
-      cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
-      cv.GaussianBlur(binarizationDst, binarizationDst, new cv.Size(9, 9), 0);
-      
-      cv.findContours(binarizationDst, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+      // cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
+
+      cv.findContours(mask, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
       let detectedCount = 0;
       for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
         const matVector = new cv.MatVector();
         matVector.push_back(contour);
-        
+
         const points = new cv.Mat();
         const area = cv.contourArea(contour);
-        if (area < 1000 || area > 400000) {
+        if (area < 1000 || area > 3000000) {
           continue;
         }
         cv.approxPolyDP(contour, points, 0.05 * cv.arcLength(contour, true), true);
@@ -124,7 +130,7 @@ export default function Processor() {
           points.delete();
           continue;
         }
-        cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255), -1);
+        cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
         detectedCount++;
         points.delete();
         matVector.delete();
@@ -141,7 +147,7 @@ export default function Processor() {
       hierarchy.delete();
       dst.delete();
       rgbSrc.delete();
-      hsbSrc.delete();
+      hsvSrc.delete();
       orig.delete();
     }
   };

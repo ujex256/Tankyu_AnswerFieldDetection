@@ -47,20 +47,22 @@ export default function FileUploader(props: Props) {
             <p>追加された画像({props.files.length})</p>
             <div class="grid grid-cols-3 gap-4">
               {props.files.map((file) => (
-                <div class="border border-gray-500 p-2 rounded">
+                <div class="border border-blue-400 rounded overflow-hidden shadow-sm">
                   <img
                     src={URL.createObjectURL(file)}
                     alt={file.name}
                     class="object-cover w-full h-20"
                   />
-                  <p class="mt-2 break-all text-sm">{file.name}</p>
+                  <p class="px-2 py-1 text-sm break-all bg-blue-50 text-blue-800">
+                    {file.name}
+                  </p>
                 </div>
               ))}
             </div>
           </>
         ) : (
           <div class="h-full flex justify-center items-center border-2 border-dashed border-gray-400 rounded">
-            <p class="text-gray-400">画像が選択されていません</p>
+            <p class="text-gray-400">画像が追加されていません</p>
           </div>
         )}
       </div>

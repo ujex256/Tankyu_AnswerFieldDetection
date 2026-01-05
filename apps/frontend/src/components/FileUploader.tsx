@@ -1,7 +1,12 @@
-import { createStore } from "solid-js/store";
+import { type SetStoreFunction } from "solid-js/store";
 
-export default function FileUploader() {
-  const [files, setFiles] = createStore<File[]>([]);
+type Props = {
+  files: File[];
+  setFiles: SetStoreFunction<File[]>;
+  onExecute: () => void;
+};
+
+export default function FileUploader(props: Props) {
   const handleUploadBtn = (from: "cam" | "file") => {
     const inputId = from === "cam" ? "upload-from-cam" : "upload-from-file";
     const inputElem = document.getElementById(inputId) as HTMLInputElement;
@@ -10,12 +15,12 @@ export default function FileUploader() {
       const target = e.target as HTMLInputElement;
       if (target.files) {
         const fileList = Array.from(target.files);
-        setFiles((prev) => [...prev, ...fileList]);
+        props.setFiles((prev) => [...prev, ...fileList]);
       }
     };
   }
   return (
-    <div class="mx-4 mb-4 flex-1 flex flex-col gap-4">
+    <div class="flex-1 flex flex-col gap-4">
       <div class="px-4 w-full flex justify-between gap-4">
         <button
           class="cursor-pointer py-1 text-center flex-1 bg-gray-400 text-white rounded-sm hover:bg-gray-500 transition"
@@ -37,11 +42,11 @@ export default function FileUploader() {
         </button>
       </div>
       <div class="flex-1">
-        {files.length > 0 ? (
+        {props.files.length > 0 ? (
           <>
-            <p>追加された画像({files.length})</p>
+            <p>追加された画像({props.files.length})</p>
             <div class="grid grid-cols-3 gap-4">
-              {files.map((file) => (
+              {props.files.map((file) => (
                 <div class="border border-gray-500 p-2 rounded">
                   <img
                     src={URL.createObjectURL(file)}
@@ -60,7 +65,11 @@ export default function FileUploader() {
         )}
       </div>
       <div class="flex justify-center">
-        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+        <button
+          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+          onClick={props.onExecute}
+          disabled={props.files.length === 0}
+        >
           処理を開始する
         </button>
       </div>

@@ -1,12 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro"
-import FileUploader from "../components/FileUploader"
+import MainProcessor from "../components/MainProcessor"
 ---
 <Layout>
   <main class="flex-1 mx-auto w-full max-w-5xl bg-amber-200 px-8 pt-6 pb-12">
     <section class="flex flex-col h-full bg-white double-border">
       <h3 class="px-8 py-4 text-2xl text-center font-semibold">写真を追加</h3>
-      <FileUploader client:load />
+      <MainProcessor client:load />
     </section>
   </main>
 </Layout>

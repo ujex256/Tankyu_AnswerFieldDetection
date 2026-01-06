@@ -1,3 +1,6 @@
+## 現状
+一応MonoRepo構成ですが今のところbackendはありません
+
 # Turborepo starter
 
 This Turborepo starter is maintained by the Turborepo core team.

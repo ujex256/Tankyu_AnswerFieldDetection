@@ -34,6 +34,7 @@ export default function Processor() {
   const [isProcessing, setIsProcessing] = createSignal(false);
   const [highlightImage, setHighlightImage] = createSignal<string | null>(null);
   const [randomizeColors, setRandomizeColors] = createSignal<boolean>(false);
+  const [showMaskInstead, setShowMask] = createSignal<boolean>(false);
 
   const readFileAsDataUrl = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -144,7 +145,11 @@ export default function Processor() {
         matVector.delete();
       }
       console.log(detectedCount)
-      cv.imshow(canvas, dst);
+      if (showMaskInstead()) {
+        cv.imshow(canvas, mask);
+      } else {
+        cv.imshow(canvas, dst);
+      }
       const processedUrl = canvas.toDataURL("image/png");
       extractedChannel.delete();
       return { name: file.name, url: processedUrl };
@@ -190,6 +195,8 @@ export default function Processor() {
       <label class="pl-6 inline-flex items-center cursor-pointer">
         <input type="checkbox" id="randomize" onChange={(e) => setRandomizeColors(e.target.checked)}/>
         <span class="select-none ms-3 text-sm font-medium text-heading">ランダム色付け</span>
+        <input type="checkbox" id="showmask" onChange={(e) => setShowMask(e.target.checked)} class="ml-4" />
+        <span class="select-none ms-3 text-sm font-medium text-heading">マスクを表示</span>
       </label>
       <FileUploader files={files} setFiles={setFiles} onExecute={handler} />
 

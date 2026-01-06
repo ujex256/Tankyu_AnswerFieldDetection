@@ -1,6 +1,13 @@
 ## 現状
 一応MonoRepo構成ですが今のところbackendはありません
 
+## What's is this
+書き込み済みのプリントから、解答欄を塗りつぶすことで書き込み前のような状態に戻したい
+現状は四角で囲まれた解答欄のみに対応
+枠内の内容については見ていないので問題番号など関係ないものもが塗りつぶされる
+国語の原稿用紙などを想定
+明かりで照らされていて明暗がはっきりしている画像がいいかも
+
 # Turborepo starter
 
 This Turborepo starter is maintained by the Turborepo core team.

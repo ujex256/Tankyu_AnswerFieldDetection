@@ -33,6 +33,7 @@ export default function Processor() {
   );
   const [isProcessing, setIsProcessing] = createSignal(false);
   const [highlightImage, setHighlightImage] = createSignal<string | null>(null);
+  const [randomizeColors, setRandomizeColors] = createSignal<boolean>(false);
 
   const readFileAsDataUrl = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -122,15 +123,22 @@ export default function Processor() {
 
         const points = new cv.Mat();
         const area = cv.contourArea(contour);
-        if (area < 1000 || area > 300000) {
+        if (area < 4000 || area > 300000) {
           continue;
         }
-        cv.approxPolyDP(contour, points, 0.05 * cv.arcLength(contour, true), true);
+        cv.approxPolyDP(contour, points, 0.03 * cv.arcLength(contour, true), true);
         if (points.rows < 3) {
           points.delete();
           continue;
         }
-        cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
+        const r = Math.floor( Math.random() * 156 ) + 100
+        const g = Math.floor( Math.random() * 156 ) + 100
+        const b = Math.floor( Math.random() * 156 ) + 100
+        if (randomizeColors()) {
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), -1);
+        } else {
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
+        }
         detectedCount++;
         points.delete();
         matVector.delete();
@@ -179,6 +187,10 @@ export default function Processor() {
 
   return (
     <div class="relative mx-4 mb-4 flex-1 flex flex-col gap-6">
+      <label class="pl-6 inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="randomize" onChange={(e) => setRandomizeColors(e.target.checked)}/>
+        <span class="select-none ms-3 text-sm font-medium text-heading">ランダム色付け</span>
+      </label>
       <FileUploader files={files} setFiles={setFiles} onExecute={handler} />
 
       {processedImages.length > 0 && (

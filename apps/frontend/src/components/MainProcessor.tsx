@@ -192,12 +192,16 @@ export default function Processor() {
 
   return (
     <div class="relative mx-4 mb-4 flex-1 flex flex-col gap-6">
-      <label class="pl-6 inline-flex items-center cursor-pointer">
-        <input type="checkbox" id="randomize" onChange={(e) => setRandomizeColors(e.target.checked)}/>
-        <span class="select-none ms-3 text-sm font-medium text-heading">ランダム色付け</span>
-        <input type="checkbox" id="showmask" onChange={(e) => setShowMask(e.target.checked)} class="ml-4" />
-        <span class="select-none ms-3 text-sm font-medium text-heading">マスクを表示</span>
-      </label>
+      <div class="pl-6 inline-flex items-center cursor-pointer">
+        <label class="select-none text-sm font-medium text-heading" for="randomize">
+          <input type="checkbox" id="randomize" onChange={(e) => setRandomizeColors(e.target.checked)}/>
+          <span class="ms-3">ランダム色付け</span>
+        </label>
+        <label class="select-none text-sm font-medium text-heading" for="showmask">
+          <input type="checkbox" id="showmask" onChange={(e) => setShowMask(e.target.checked)} class="ml-4" />
+          <span class="ms-3">マスクを表示</span>
+        </label>
+      </div>
       <FileUploader files={files} setFiles={setFiles} onExecute={handler} />
 
       {processedImages.length > 0 && (

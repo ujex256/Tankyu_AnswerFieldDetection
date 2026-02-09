@@ -31,6 +31,7 @@ export default function Processor() {
   const [processedImages, setProcessedImages] = createStore<ProcessedImage[]>(
     []
   );
+  const [processedCount, setProcessedCount] = createSignal(0);
   const [isProcessing, setIsProcessing] = createSignal(false);
   const [highlightImage, setHighlightImage] = createSignal<string | null>(null);
   const [randomizeColors, setRandomizeColors] = createSignal<boolean>(false);
@@ -152,6 +153,7 @@ export default function Processor() {
       }
       const processedUrl = canvas.toDataURL("image/png");
       extractedChannel.delete();
+      console.log("processed")
       return { name: file.name, url: processedUrl };
     } finally {
       binarizationDst.delete();
@@ -169,9 +171,13 @@ export default function Processor() {
     if (files.length === 0) return;
     setIsProcessing(true);
     try {
-      const results = await Promise.all(
-        files.map((file) => processSingleImage(file))
-      );
+      const results = [];
+      for await (const file of files.map((f) => processSingleImage(f))) {
+        // const result = await processSingleImage(file);
+        // console.log("ye")
+        results.push(file);
+        setProcessedCount(results.length);
+      }
       setProcessedImages(results);
     } catch (error) {
       console.error(error);
@@ -246,7 +252,7 @@ export default function Processor() {
         class="absolute top-0 left-0 flex flex-col items-center justify-center gap-6 w-full h-full bg-white opacity-90"
         hidden={!isProcessing()}
       >
-        処理中です！
+        処理中です！({processedCount()}/{files.length})
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="72"

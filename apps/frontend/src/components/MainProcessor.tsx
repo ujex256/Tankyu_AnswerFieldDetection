@@ -47,8 +47,7 @@ export default function Processor() {
     });
   };
 
-  const processSingleImage = async (file: File): Promise<ProcessedImage> => {
-    const { cv } = await getOpenCv();
+  const drawImageOnCanvas = async (file: File) => {
     const dataUrl = await readFileAsDataUrl(file);
 
     const img = new Image();
@@ -58,15 +57,22 @@ export default function Processor() {
       img.onload = () => resolve();
       img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
     });
-
     const canvas = document.createElement("canvas");
     canvas.width = img.width;
     canvas.height = img.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("キャンバスの作成に失敗しました");
     ctx.drawImage(img, 0, 0, img.width, img.height);
+    return canvas;
+  }
 
+  const processSingleImage = async (file: File): Promise<ProcessedImage> => {
+    const { cv } = await getOpenCv();
+
+    const canvas = await drawImageOnCanvas(file);
     const orig = cv.imread(canvas);
+    const entireArea = orig.rows * orig.cols;
+
     // @ts-ignore
     const dst = orig.mat_clone();
     const rgbSrc = new cv.Mat();
@@ -106,11 +112,9 @@ export default function Processor() {
 
       const mask = new cv.Mat();
       cv.bitwise_or(vertical, horizontal, mask);
-      // cv.bitwise_and(binarizationDst, mask, binarizationDst);
 
       cv.erode(mask, mask, cv.Mat.ones(2, 2, cv.CV_8U));
       cv.dilate(mask, mask, cv.Mat.ones(5, 5, cv.CV_8U));
-      // cv.imshow(canvas, mask);
       // cv.erode(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
       // cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(5, 5, cv.CV_8U));
 
@@ -125,7 +129,8 @@ export default function Processor() {
 
         const points = new cv.Mat();
         const area = cv.contourArea(contour);
-        if (area < 4000 || area > 300000) {
+        // TODO: 条件は要調整
+        if (area < entireArea * 0.0007 || area > entireArea * 0.05) {
           continue;
         }
         cv.approxPolyDP(contour, points, 0.03 * cv.arcLength(contour, true), true);

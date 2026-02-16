@@ -80,6 +80,7 @@ export default function Processor() {
     const canvas = await drawImageOnCanvas(file);
     const orig = cv.imread(canvas);
     const entireArea = orig.rows * orig.cols;
+    // TODO: いい割合探す
     const maxArea = entireArea * 0.3;
     const minArea = entireArea * 0.0007;
     console.log(`Max area: ${maxArea}, Min area: ${minArea}`)
@@ -124,8 +125,6 @@ export default function Processor() {
 
       cv.erode(mask, mask, cv.Mat.ones(2, 2, cv.CV_8U));
       cv.dilate(mask, mask, cv.Mat.ones(5, 5, cv.CV_8U));
-      // cv.erode(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
-      // cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(5, 5, cv.CV_8U));
 
       // cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
 
@@ -140,11 +139,13 @@ export default function Processor() {
         const contour = contours.get(i);
         const points = new cv.Mat();
         const area = cv.contourArea(contour);
-        if (area >= minArea && area <= maxArea) {
-          cv.approxPolyDP(contour, points, 0.03 * cv.arcLength(contour, true), true);
-          if (points.rows >= 3) {
-            accepted[i] = true;
-          }
+        if (minArea <= area && area <= maxArea) {
+          // 近似処理しないほうがいい？（閾値は要調整）
+          // cv.approxPolyDP(contour, points, 0.05 * cv.arcLength(contour, true), true);
+          // if (points.rows >= 3) {
+          //   accepted[i] = true;
+          // }
+          accepted[i] = true;
         }
         points.delete();
       }
@@ -170,7 +171,7 @@ export default function Processor() {
           const r = Math.floor( Math.random() * 156 ) + 100
           const g = Math.floor( Math.random() * 156 ) + 100
           const b = Math.floor( Math.random() * 156 ) + 100
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 2 : -1);
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 3 : -1);
         } else {
           cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
         }
@@ -206,7 +207,6 @@ export default function Processor() {
       const results = [];
       for await (const file of files.map((f) => processSingleImage(f))) {
         // const result = await processSingleImage(file);
-        // console.log("ye")
         results.push(file);
         setProcessedCount(results.length);
       }

@@ -3,6 +3,7 @@ import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
 import cvModule from "@techstark/opencv-js";
 
+
 // https://github.com/TechStark/opencv-js?tab=readme-ov-file#basic-usage
 async function getOpenCv(): Promise<{ cv: typeof cvModule }> {
   let cv;
@@ -26,6 +27,35 @@ type ProcessedImage = {
   url: string;
 };
 
+const readFileAsDataUrl = (file: File) => {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () =>
+      reject(new Error("ファイルの読み込みに失敗しました"));
+    reader.readAsDataURL(file);
+  });
+};
+
+const drawImageOnCanvas = async (file: File) => {
+  const dataUrl = await readFileAsDataUrl(file);
+
+  const img = new Image();
+  img.src = dataUrl;
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("キャンバスの作成に失敗しました");
+  ctx.drawImage(img, 0, 0, img.width, img.height);
+  return canvas;
+};
+
 export default function Processor() {
   const [files, setFiles] = createStore<File[]>([]);
   const [processedImages, setProcessedImages] = createStore<ProcessedImage[]>(
@@ -43,35 +73,6 @@ export default function Processor() {
     };
   };
   const [config, setConfig] = createStore(initialConfig());
-
-  const readFileAsDataUrl = (file: File) => {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () =>
-        reject(new Error("ファイルの読み込みに失敗しました"));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const drawImageOnCanvas = async (file: File) => {
-    const dataUrl = await readFileAsDataUrl(file);
-
-    const img = new Image();
-    img.src = dataUrl;
-
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("キャンバスの作成に失敗しました");
-    ctx.drawImage(img, 0, 0, img.width, img.height);
-    return canvas;
-  }
 
   const processSingleImage = async (file: File): Promise<ProcessedImage> => {
     const { cv } = await getOpenCv();
@@ -101,7 +102,6 @@ export default function Processor() {
       cv.threshold(extractedChannel, binarizationDst, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
       cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
 
-      // @ts-ignore
       const vertical = new cv.Mat();
       const vKernel = cv.getStructuringElement(
         cv.MORPH_RECT,
@@ -109,7 +109,6 @@ export default function Processor() {
       );
       cv.morphologyEx(binarizationDst, vertical, cv.MORPH_OPEN, vKernel);
 
-      // @ts-ignore
       const horizontal = new cv.Mat();
       const hKernel = cv.getStructuringElement(
         cv.MORPH_RECT,
@@ -146,13 +145,13 @@ export default function Processor() {
           points.delete();
           continue;
         }
-        const r = Math.floor( Math.random() * 156 ) + 100
-        const g = Math.floor( Math.random() * 156 ) + 100
-        const b = Math.floor( Math.random() * 156 ) + 100
         if (config.randomizeColors) {
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 1 : -1);
+          const r = Math.floor( Math.random() * 156 ) + 100
+          const g = Math.floor( Math.random() * 156 ) + 100
+          const b = Math.floor( Math.random() * 156 ) + 100
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 2 : -1);
         } else {
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), config.useThinLine ? 1 : -1);
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), config.useThinLine ? 2 : -1);
         }
         detectedCount++;
         points.delete();

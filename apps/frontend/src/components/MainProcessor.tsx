@@ -80,6 +80,9 @@ export default function Processor() {
     const canvas = await drawImageOnCanvas(file);
     const orig = cv.imread(canvas);
     const entireArea = orig.rows * orig.cols;
+    const maxArea = entireArea * 0.3;
+    const minArea = entireArea * 0.0007;
+    console.log(`Max area: ${maxArea}, Min area: ${minArea}`)
 
     // @ts-ignore
     const dst = orig.mat_clone();
@@ -126,35 +129,52 @@ export default function Processor() {
 
       // cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
 
-      console.log(`Max area: ${entireArea * 0.05}, Min area: ${entireArea * 0.0007}`)
-      cv.findContours(mask, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+      cv.findContours(mask, contours, hierarchy, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE);
       let detectedCount = 0;
-      for (let i = 0; i < contours.size(); i++) {
+      const contourCount = contours.size();
+      const accepted = new Array(contourCount).fill(false);
+      const isAncestorOfAccepted = new Array(contourCount).fill(false);
+      const getParentIndex = (index: number) => hierarchy.intPtr(0, index)[3];
+
+      for (let i = 0; i < contourCount; i++) {
+        const contour = contours.get(i);
+        const points = new cv.Mat();
+        const area = cv.contourArea(contour);
+        if (area >= minArea && area <= maxArea) {
+          cv.approxPolyDP(contour, points, 0.03 * cv.arcLength(contour, true), true);
+          if (points.rows >= 3) {
+            accepted[i] = true;
+          }
+        }
+        points.delete();
+      }
+
+      for (let i = 0; i < contourCount; i++) {
+        if (!accepted[i]) continue;
+        let parent = getParentIndex(i);
+        while (parent !== -1) {
+          isAncestorOfAccepted[parent] = true;
+          parent = getParentIndex(parent);
+        }
+      }
+
+      for (let i = 0; i < contourCount; i++) {
+        if (!accepted[i]) continue;
+        if (isAncestorOfAccepted[i]) continue;
+
         const contour = contours.get(i);
         const matVector = new cv.MatVector();
         matVector.push_back(contour);
 
-        const points = new cv.Mat();
-        const area = cv.contourArea(contour);
-        // TODO: 条件は要調整
-        // if (area < entireArea * 0.0007 || area > entireArea * 0.05) {
-        //   continue;
-        // }
-        cv.approxPolyDP(contour, points, 0.03 * cv.arcLength(contour, true), true);
-        if (points.rows < 3) {
-          points.delete();
-          continue;
-        }
-        if (config.randomizeColors) {
+        if (config.randomizeColors || config.useThinLine) {
           const r = Math.floor( Math.random() * 156 ) + 100
           const g = Math.floor( Math.random() * 156 ) + 100
           const b = Math.floor( Math.random() * 156 ) + 100
           cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 2 : -1);
         } else {
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), config.useThinLine ? 2 : -1);
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
         }
         detectedCount++;
-        points.delete();
         matVector.delete();
       }
       console.log(detectedCount)

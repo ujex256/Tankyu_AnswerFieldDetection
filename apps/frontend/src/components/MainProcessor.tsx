@@ -34,8 +34,15 @@ export default function Processor() {
   const [processedCount, setProcessedCount] = createSignal(0);
   const [isProcessing, setIsProcessing] = createSignal(false);
   const [highlightImage, setHighlightImage] = createSignal<string | null>(null);
-  const [randomizeColors, setRandomizeColors] = createSignal<boolean>(false);
-  const [showMaskInstead, setShowMask] = createSignal<boolean>(false);
+
+  const initialConfig = () => {
+    return {
+      randomizeColors: false,
+      showMask: false,
+      useThinLine: false
+    };
+  };
+  const [config, setConfig] = createStore(initialConfig());
 
   const readFileAsDataUrl = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -120,6 +127,7 @@ export default function Processor() {
 
       // cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
 
+      console.log(`Max area: ${entireArea * 0.05}, Min area: ${entireArea * 0.0007}`)
       cv.findContours(mask, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
       let detectedCount = 0;
       for (let i = 0; i < contours.size(); i++) {
@@ -130,9 +138,9 @@ export default function Processor() {
         const points = new cv.Mat();
         const area = cv.contourArea(contour);
         // TODO: 条件は要調整
-        if (area < entireArea * 0.0007 || area > entireArea * 0.05) {
-          continue;
-        }
+        // if (area < entireArea * 0.0007 || area > entireArea * 0.05) {
+        //   continue;
+        // }
         cv.approxPolyDP(contour, points, 0.03 * cv.arcLength(contour, true), true);
         if (points.rows < 3) {
           points.delete();
@@ -141,17 +149,17 @@ export default function Processor() {
         const r = Math.floor( Math.random() * 156 ) + 100
         const g = Math.floor( Math.random() * 156 ) + 100
         const b = Math.floor( Math.random() * 156 ) + 100
-        if (randomizeColors()) {
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), -1);
+        if (config.randomizeColors) {
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 1 : -1);
         } else {
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
+          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), config.useThinLine ? 1 : -1);
         }
         detectedCount++;
         points.delete();
         matVector.delete();
       }
       console.log(detectedCount)
-      if (showMaskInstead()) {
+      if (config.showMask) {
         cv.imshow(canvas, mask);
       } else {
         cv.imshow(canvas, dst);
@@ -205,12 +213,16 @@ export default function Processor() {
     <div class="relative mx-4 mb-4 flex-1 flex flex-col gap-6">
       <div class="pl-6 inline-flex items-center cursor-pointer">
         <label class="select-none text-sm font-medium text-heading" for="randomize">
-          <input type="checkbox" id="randomize" onChange={(e) => setRandomizeColors(e.target.checked)}/>
+          <input type="checkbox" id="randomize" onChange={(e) => setConfig("randomizeColors", e.target.checked)}/>
           <span class="ms-3">ランダム色付け</span>
         </label>
         <label class="select-none text-sm font-medium text-heading" for="showmask">
-          <input type="checkbox" id="showmask" onChange={(e) => setShowMask(e.target.checked)} class="ml-4" />
+          <input type="checkbox" id="showmask" onChange={(e) => setConfig("showMask", e.target.checked)} class="ml-4" />
           <span class="ms-3">マスクを表示</span>
+        </label>
+        <label class="select-none text-sm font-medium text-heading" for="useThinLine">
+          <input type="checkbox" id="useThinLine" onChange={(e) => setConfig("useThinLine", e.target.checked)} class="ml-4" />
+          <span class="ms-3">細線で描画</span>
         </label>
       </div>
       <FileUploader files={files} setFiles={setFiles} onExecute={handler} />

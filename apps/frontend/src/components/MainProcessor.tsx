@@ -3,10 +3,9 @@ import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
 import cvModule from "@techstark/opencv-js";
 
-
 // https://github.com/TechStark/opencv-js?tab=readme-ov-file#basic-usage
 async function getOpenCv(): Promise<{ cv: typeof cvModule }> {
-  let cv;
+  let cv: typeof cvModule;
   if (cvModule instanceof Promise) {
     cv = await cvModule;
   } else {
@@ -59,7 +58,7 @@ const drawImageOnCanvas = async (file: File) => {
 export default function Processor() {
   const [files, setFiles] = createStore<File[]>([]);
   const [processedImages, setProcessedImages] = createStore<ProcessedImage[]>(
-    []
+    [],
   );
   const [processedCount, setProcessedCount] = createSignal(0);
   const [isProcessing, setIsProcessing] = createSignal(false);
@@ -69,7 +68,7 @@ export default function Processor() {
     return {
       randomizeColors: false,
       showMask: false,
-      useThinLine: false
+      useThinLine: false,
     };
   };
   const [config, setConfig] = createStore(initialConfig());
@@ -83,9 +82,9 @@ export default function Processor() {
     // TODO: いい割合探す
     const maxArea = entireArea * 0.3;
     const minArea = entireArea * 0.0005;
-    console.log(`Max area: ${maxArea}, Min area: ${minArea}`)
+    console.log(`Max area: ${maxArea}, Min area: ${minArea}`);
 
-    // @ts-ignore
+    // @ts-expect-error
     const dst = orig.mat_clone();
     const rgbSrc = new cv.Mat();
     cv.cvtColor(orig, rgbSrc, cv.COLOR_RGBA2RGB);
@@ -103,20 +102,26 @@ export default function Processor() {
       cv.split(hsvSrc, hsvChannels);
       const extractedChannel = hsvChannels.get(2);
       cv.bitwise_not(extractedChannel, extractedChannel);
-      cv.threshold(extractedChannel, binarizationDst, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+      cv.threshold(
+        extractedChannel,
+        binarizationDst,
+        0,
+        255,
+        cv.THRESH_BINARY + cv.THRESH_OTSU,
+      );
       cv.dilate(binarizationDst, binarizationDst, cv.Mat.ones(2, 2, cv.CV_8U));
 
       const vertical = new cv.Mat();
       const vKernel = cv.getStructuringElement(
         cv.MORPH_RECT,
-        new cv.Size(1, 25) // ← 縦に長い
+        new cv.Size(1, 25), // ← 縦に長い
       );
       cv.morphologyEx(binarizationDst, vertical, cv.MORPH_OPEN, vKernel);
 
       const horizontal = new cv.Mat();
       const hKernel = cv.getStructuringElement(
         cv.MORPH_RECT,
-        new cv.Size(15, 1) // ← 横に長い
+        new cv.Size(15, 1), // ← 横に長い
       );
       cv.morphologyEx(binarizationDst, horizontal, cv.MORPH_OPEN, hKernel);
 
@@ -128,7 +133,13 @@ export default function Processor() {
 
       // cv.morphologyEx(binarizationDst, binarizationDst, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 1)));
 
-      cv.findContours(mask, contours, hierarchy, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE);
+      cv.findContours(
+        mask,
+        contours,
+        hierarchy,
+        cv.RETR_TREE,
+        cv.CHAIN_APPROX_SIMPLE,
+      );
       let detectedCount = 0;
       const contourCount = contours.size();
       const accepted = new Array(contourCount).fill(false);
@@ -168,17 +179,29 @@ export default function Processor() {
         matVector.push_back(contour);
 
         if (config.randomizeColors || config.useThinLine) {
-          const r = Math.floor( Math.random() * 156 ) + 100
-          const g = Math.floor( Math.random() * 156 ) + 100
-          const b = Math.floor( Math.random() * 156 ) + 100
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(r, g, b, 255), config.useThinLine ? 3 : -1);
+          const r = Math.floor(Math.random() * 156) + 100;
+          const g = Math.floor(Math.random() * 156) + 100;
+          const b = Math.floor(Math.random() * 156) + 100;
+          cv.drawContours(
+            dst,
+            matVector,
+            0,
+            new cv.Scalar(r, g, b, 255),
+            config.useThinLine ? 3 : -1,
+          );
         } else {
-          cv.drawContours(dst, matVector, 0, new cv.Scalar(255, 255, 255, 255), -1);
+          cv.drawContours(
+            dst,
+            matVector,
+            0,
+            new cv.Scalar(255, 255, 255, 255),
+            -1,
+          );
         }
         detectedCount++;
         matVector.delete();
       }
-      console.log(detectedCount)
+      console.log(detectedCount);
       if (config.showMask) {
         cv.imshow(canvas, mask);
       } else {
@@ -186,7 +209,7 @@ export default function Processor() {
       }
       const processedUrl = canvas.toDataURL("image/png");
       extractedChannel.delete();
-      console.log("processed")
+      console.log("processed");
       return { name: file.name, url: processedUrl };
     } finally {
       binarizationDst.delete();
@@ -231,16 +254,39 @@ export default function Processor() {
   return (
     <div class="relative mx-4 mb-4 flex-1 flex flex-col gap-6">
       <div class="pl-6 inline-flex items-center cursor-pointer">
-        <label class="select-none text-sm font-medium text-heading" for="randomize">
-          <input type="checkbox" id="randomize" onChange={(e) => setConfig("randomizeColors", e.target.checked)}/>
+        <label
+          class="select-none text-sm font-medium text-heading"
+          for="randomize"
+        >
+          <input
+            type="checkbox"
+            id="randomize"
+            onChange={(e) => setConfig("randomizeColors", e.target.checked)}
+          />
           <span class="ms-3">ランダム色付け</span>
         </label>
-        <label class="select-none text-sm font-medium text-heading" for="showmask">
-          <input type="checkbox" id="showmask" onChange={(e) => setConfig("showMask", e.target.checked)} class="ml-4" />
+        <label
+          class="select-none text-sm font-medium text-heading"
+          for="showmask"
+        >
+          <input
+            type="checkbox"
+            id="showmask"
+            onChange={(e) => setConfig("showMask", e.target.checked)}
+            class="ml-4"
+          />
           <span class="ms-3">マスクを表示</span>
         </label>
-        <label class="select-none text-sm font-medium text-heading" for="useThinLine">
-          <input type="checkbox" id="useThinLine" onChange={(e) => setConfig("useThinLine", e.target.checked)} class="ml-4" />
+        <label
+          class="select-none text-sm font-medium text-heading"
+          for="useThinLine"
+        >
+          <input
+            type="checkbox"
+            id="useThinLine"
+            onChange={(e) => setConfig("useThinLine", e.target.checked)}
+            class="ml-4"
+          />
           <span class="ms-3">細線で描画</span>
         </label>
       </div>
@@ -256,7 +302,9 @@ export default function Processor() {
                   src={img.url}
                   alt={img.name}
                   class="w-full h-40 object-cover"
-                  onClick={() => {setHighlightImage(img.url)}}
+                  onClick={() => {
+                    setHighlightImage(img.url);
+                  }}
                 />
                 <div class="px-2 py-1 text-sm break-all bg-blue-50 text-blue-800 flex items-center justify-between gap-2">
                   <span class="truncate">{img.name}</span>
@@ -275,7 +323,9 @@ export default function Processor() {
       {highlightImage() && (
         <div
           class="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center p-4 z-50"
-          onClick={() => {setHighlightImage(null)}}
+          onClick={() => {
+            setHighlightImage(null);
+          }}
         >
           <img
             src={highlightImage()!}

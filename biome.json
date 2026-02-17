@@ -17,18 +17,23 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "a11y": "off"
     }
   },
   "javascript": {
-    "globals": ["Astro"],
+    "globals": ["astro"],
     "formatter": {
       "quoteStyle": "double",
       "semicolons": "always"
     }
   },
   "html": {
-    "experimentalFullSupportEnabled": true
+    "experimentalFullSupportEnabled": true,
+    "formatter": {
+      "enabled": true,
+      "indentScriptAndStyle": true
+    }
   },
   "assist": {
     "enabled": true,

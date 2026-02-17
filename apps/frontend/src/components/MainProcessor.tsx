@@ -82,6 +82,7 @@ export default function Processor() {
     // TODO: いい割合探す
     const maxArea = entireArea * 0.3;
     const minArea = entireArea * 0.0005;
+    console.log(`Image: ${file.name}, Area: ${entireArea}`);
     console.log(`Max area: ${maxArea}, Min area: ${minArea}`);
 
     // @ts-expect-error

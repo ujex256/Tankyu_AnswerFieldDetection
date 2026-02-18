@@ -63,7 +63,7 @@ export default function Processor() {
   const [processedCount, setProcessedCount] = createSignal(0);
   const [isProcessing, setIsProcessing] = createSignal(false);
   const [highlightImage, setHighlightImage] = createSignal<string | null>(null);
-
+  
   const initialConfig = () => {
     return {
       randomizeColors: false,
@@ -73,8 +73,14 @@ export default function Processor() {
   };
   const [config, setConfig] = createStore(initialConfig());
 
-  const processSingleImage = async (file: File): Promise<ProcessedImage> => {
-    const { cv } = await getOpenCv();
+  const processSingleImage = async (file: File, loadedCv?: typeof cvModule): Promise<ProcessedImage> => {
+    console.log("Loading OpenCV...");
+    let cv: typeof cvModule;
+    if (loadedCv) {
+      cv = loadedCv;
+    } else {
+      cv = await getOpenCv();
+    }
 
     const canvas = await drawImageOnCanvas(file);
     const orig = cv.imread(canvas);
